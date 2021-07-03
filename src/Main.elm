@@ -5,14 +5,13 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
+-- import Html.Events.Extra exposing (onChange)
 import Scale exposing (ContinuousScale)
 import TypedSvg exposing (circle, defs, g, linearGradient, stop, svg)
 import TypedSvg.Attributes exposing (fill, offset, opacity, stopColor, stroke, transform, viewBox)
 import TypedSvg.Attributes.InPx exposing (cx, cy, r, strokeWidth)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), CoordinateSystem(..), Length(..), Opacity(..), Paint(..), Transform(..))
-
-
 
 -- MAIN
 
@@ -32,27 +31,43 @@ type alias Model =
     , verticalScale : Float
     , horizontalScaleString : String
     , verticalScaleString : String
-    -- , horizontalFrame : Float
-    -- , verticalFrame : Float
+    , horizontalFrame : Float
+    , verticalFrame : Float
+    , horizontalFrameString : String
+    , verticalFrameString : String
     }
 
 
-initMaxHorizontal : Float
-initMaxHorizontal =
+initMaxHorizontalScale : Float
+initMaxHorizontalScale =
     100.0
 
 
-initMaxVertical : Float
-initMaxVertical =
+initMaxVerticalScale : Float
+initMaxVerticalScale =
     100.0
+
+
+initMaxHorizontalFrame : Float
+initMaxHorizontalFrame =
+    1000.0
+
+
+initMaxVerticalFrame : Float
+initMaxVerticalFrame =
+    500.0
 
 
 init : Model
 init =
     Model [ ( 0, 0 ), ( 50, 45 ), ( 31, 23 ) ]
         "0 0\n50 45\n31 23"
-        initMaxHorizontal
-        initMaxVertical
+        initMaxHorizontalScale
+        initMaxVerticalScale
+        ""
+        ""
+        initMaxHorizontalFrame
+        initMaxVerticalFrame
         ""
         ""
 
@@ -63,8 +78,10 @@ init =
 
 type Msg
     = UpdateCoordinates String
-    | UpdateHorizontal String
-    | UpdateVertical String
+    | UpdateHorizontalScale String
+    | UpdateVerticalScale String
+    | UpdateHorizontalFrame String
+    | UpdateVerticalFrame String
 
 
 update : Msg -> Model -> Model
@@ -83,16 +100,28 @@ update msg model =
                                         String.lines model.coordinatesString
             }
 
-        UpdateHorizontal maxHorizontalString ->
+        UpdateHorizontalScale maxHorizontalString ->
             { model
-                | horizontalScale = Maybe.withDefault initMaxHorizontal <| String.toFloat maxHorizontalString
+                | horizontalScale = Maybe.withDefault initMaxHorizontalScale <| String.toFloat maxHorizontalString
                 , horizontalScaleString = maxHorizontalString
             }
 
-        UpdateVertical maxVerticalString ->
+        UpdateVerticalScale maxVerticalString ->
             { model
-                | verticalScale = Maybe.withDefault initMaxHorizontal <| String.toFloat maxVerticalString
+                | verticalScale = Maybe.withDefault initMaxVerticalScale <| String.toFloat maxVerticalString
                 , verticalScaleString = maxVerticalString
+            }
+
+        UpdateHorizontalFrame maxHorizontalString ->
+            { model
+                | horizontalFrame = Maybe.withDefault initMaxHorizontalFrame <| String.toFloat maxHorizontalString
+                , horizontalFrameString = maxHorizontalString
+            }
+
+        UpdateVerticalFrame maxVerticalString ->
+            { model
+                | verticalFrame = Maybe.withDefault initMaxVerticalFrame <| String.toFloat maxVerticalString
+                , verticalFrameString = maxVerticalString
             }
 
 
@@ -114,8 +143,14 @@ view : Model -> Html Msg
 view model =
     div []
         [ div [] [ viewTextarea textareaRow textareaCol "input coordinates here!" model.coordinatesString UpdateCoordinates ]
-        , div [] [ viewInput "input max x-axis scale" model.horizontalScaleString UpdateHorizontal ]
-        , div [] [ viewInput "input max y-axis scale" model.verticalScaleString UpdateVertical ]
+        , div []
+            [ div [] [ viewInput "input max x-axis scale" model.horizontalScaleString UpdateHorizontalScale ]
+            , div [] [ viewInput "input max y-axis scale" model.verticalScaleString UpdateVerticalScale ]
+            ]
+        , div []
+            [ div [] [ viewInput "input max x-axis frame" model.horizontalFrameString UpdateHorizontalFrame ]
+            , div [] [ viewInput "input max y-axis frame" model.verticalFrameString UpdateVerticalFrame ]
+            ]
         , viewValidation model
         , div [] [ plot model model.coordinatesList ]
         ]
@@ -186,7 +221,6 @@ viewValidation model =
                )
     then
         invalidMessage "Please include only numbers in vertical!"
-
         -- 1行当たりの数字は2つまで
 
     else if
@@ -195,7 +229,6 @@ viewValidation model =
             |> List.any (\strs -> List.length strs > 2)
     then
         invalidMessage "Too many numbers on a line!"
-
         -- 枠の長さが0か判別
 
     else if model.horizontalScale == 0 then
@@ -203,7 +236,6 @@ viewValidation model =
 
     else if model.verticalScale == 0 then
         invalidMessage "Do not set the y-axis length to 0!"
-
         -- 軸の長さより大きいか判別
 
     else if List.any (\floatPair -> Tuple.first floatPair > model.horizontalScale || Tuple.second floatPair > model.horizontalScale) model.coordinatesList then
@@ -220,16 +252,6 @@ viewValidation model =
 --- Plot
 
 
-w : Float
-w =
-    1000
-
-
-h : Float
-h =
-    1000
-
-
 padding : Float
 padding =
     30
@@ -237,12 +259,12 @@ padding =
 
 xScale : Model -> ContinuousScale Float
 xScale model =
-    Scale.linear ( 0, w - 2 * padding ) ( -model.horizontalScale, model.horizontalScale )
+    Scale.linear ( 0, model.horizontalFrame - 2 * padding ) ( -model.horizontalScale, model.horizontalScale )
 
 
 yScale : Model -> ContinuousScale Float
 yScale model =
-    Scale.linear ( h - 2 * padding, 0 ) ( -model.verticalScale, model.verticalScale )
+    Scale.linear ( model.verticalFrame - 2 * padding, 0 ) ( -model.verticalScale, model.verticalScale )
 
 
 xAxis : Model -> Svg msg
@@ -303,10 +325,10 @@ myDefs =
 
 plot : Model -> List ( Float, Float ) -> Svg msg
 plot model dataPoints =
-    svg [ viewBox 0 0 w h ]
+    svg [ viewBox 0 0 model.horizontalFrame model.verticalFrame ]
         --
         [ defs [] myDefs
-        , g [ transform [ Translate (padding - 1) (h - padding) ] ]
+        , g [ transform [ Translate (padding - 1) (model.verticalFrame - padding) ] ]
             [ xAxis model ]
         , g [ transform [ Translate (padding - 1) padding ] ]
             [ yAxis model ]
