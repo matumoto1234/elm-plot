@@ -28,10 +28,12 @@ main =
 type alias Model =
     { coordinatesList : List ( Float, Float )
     , coordinatesString : String
-    , horizontalFrame : Float
-    , verticalFrame : Float
-    , horizontalFrameString : String
-    , verticalFrameString : String
+    , horizontalScale : Float
+    , verticalScale : Float
+    , horizontalScaleString : String
+    , verticalScaleString : String
+    -- , horizontalFrame : Float
+    -- , verticalFrame : Float
     }
 
 
@@ -83,14 +85,14 @@ update msg model =
 
         UpdateHorizontal maxHorizontalString ->
             { model
-                | horizontalFrame = Maybe.withDefault initMaxHorizontal <| String.toFloat maxHorizontalString
-                , horizontalFrameString = maxHorizontalString
+                | horizontalScale = Maybe.withDefault initMaxHorizontal <| String.toFloat maxHorizontalString
+                , horizontalScaleString = maxHorizontalString
             }
 
         UpdateVertical maxVerticalString ->
             { model
-                | verticalFrame = Maybe.withDefault initMaxHorizontal <| String.toFloat maxVerticalString
-                , verticalFrameString = maxVerticalString
+                | verticalScale = Maybe.withDefault initMaxHorizontal <| String.toFloat maxVerticalString
+                , verticalScaleString = maxVerticalString
             }
 
 
@@ -112,8 +114,8 @@ view : Model -> Html Msg
 view model =
     div []
         [ div [] [ viewTextarea textareaRow textareaCol "input coordinates here!" model.coordinatesString UpdateCoordinates ]
-        , div [] [ viewInput "input max x-axis length" model.horizontalFrameString UpdateHorizontal ]
-        , div [] [ viewInput "input max y-axis length" model.verticalFrameString UpdateVertical ]
+        , div [] [ viewInput "input max x-axis scale" model.horizontalScaleString UpdateHorizontal ]
+        , div [] [ viewInput "input max y-axis scale" model.verticalScaleString UpdateVertical ]
         , viewValidation model
         , div [] [ plot model model.coordinatesList ]
         ]
@@ -170,16 +172,16 @@ viewValidation model =
         invalidMessage "Please include only numbers!"
 
     else if
-        not (String.isEmpty model.horizontalFrameString)
-            && (String.toFloat model.horizontalFrameString
+        not (String.isEmpty model.horizontalScaleString)
+            && (String.toFloat model.horizontalScaleString
                     |> isNothing
                )
     then
         invalidMessage "Please include only numbers in horizontal!"
 
     else if
-        not (String.isEmpty model.verticalFrameString)
-            && (String.toFloat model.verticalFrameString
+        not (String.isEmpty model.verticalScaleString)
+            && (String.toFloat model.verticalScaleString
                     |> isNothing
                )
     then
@@ -196,18 +198,18 @@ viewValidation model =
 
         -- 枠の長さが0か判別
 
-    else if model.horizontalFrame == 0 then
+    else if model.horizontalScale == 0 then
         invalidMessage "Do not set the x-axis length to 0!"
 
-    else if model.verticalFrame == 0 then
+    else if model.verticalScale == 0 then
         invalidMessage "Do not set the y-axis length to 0!"
 
         -- 軸の長さより大きいか判別
 
-    else if List.any (\floatPair -> Tuple.first floatPair > model.horizontalFrame || Tuple.second floatPair > model.horizontalFrame) model.coordinatesList then
+    else if List.any (\floatPair -> Tuple.first floatPair > model.horizontalScale || Tuple.second floatPair > model.horizontalScale) model.coordinatesList then
         invalidMessage "Make it all point smaller than the x-axis length!"
 
-    else if List.any (\floatPair -> Tuple.first floatPair > model.verticalFrame || Tuple.second floatPair > model.verticalFrame) model.coordinatesList then
+    else if List.any (\floatPair -> Tuple.first floatPair > model.verticalScale || Tuple.second floatPair > model.verticalScale) model.coordinatesList then
         invalidMessage "Make it all point smaller than the y-axis length!"
 
     else
@@ -235,12 +237,12 @@ padding =
 
 xScale : Model -> ContinuousScale Float
 xScale model =
-    Scale.linear ( 0, w - 2 * padding ) ( -model.horizontalFrame, model.horizontalFrame )
+    Scale.linear ( 0, w - 2 * padding ) ( -model.horizontalScale, model.horizontalScale )
 
 
 yScale : Model -> ContinuousScale Float
 yScale model =
-    Scale.linear ( h - 2 * padding, 0 ) ( -model.verticalFrame, model.verticalFrame )
+    Scale.linear ( h - 2 * padding, 0 ) ( -model.verticalScale, model.verticalScale )
 
 
 xAxis : Model -> Svg msg
