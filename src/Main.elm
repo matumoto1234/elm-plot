@@ -14,16 +14,11 @@ import TypedSvg.Types exposing (AnchorAlignment(..), CoordinateSystem(..), Lengt
 
 
 
-
-
 -- MAIN
 
 
 main =
     Browser.sandbox { init = init, update = update, view = view }
-
-
-
 
 
 
@@ -52,10 +47,12 @@ initMaxVertical =
 
 init : Model
 init =
-    Model [] "" initMaxHorizontal initMaxVertical "" ""
-
-
-
+    Model [ ( 0, 0 ), ( 50, 45 ), ( 31, 23 ) ]
+        "0 0\n50 45\n31 23"
+        initMaxHorizontal
+        initMaxVertical
+        ""
+        ""
 
 
 
@@ -71,6 +68,7 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
+        -- StringをList ( Float, Float )にする
         UpdateCoordinates inputStr ->
             { model
                 | coordinatesString = inputStr
@@ -94,8 +92,6 @@ update msg model =
                 | verticalFrame = Maybe.withDefault initMaxHorizontal <| String.toFloat maxVerticalString
                 , verticalFrameString = maxVerticalString
             }
-
-
 
 
 
@@ -124,7 +120,6 @@ view model =
 
 
 
-
 --- Input
 
 
@@ -136,7 +131,6 @@ viewInput ph v toMsg =
 viewTextarea : Int -> Int -> String -> String -> (String -> msg) -> Html msg
 viewTextarea maxRow maxCol p v toMsg =
     textarea [ rows maxRow, cols maxCol, placeholder p, value v, onInput toMsg ] [ text "" ]
-
 
 
 
@@ -165,7 +159,6 @@ invalidMessage message =
 
 viewValidation : Model -> Html msg
 viewValidation model =
-
     -- 数字以外
     if
         not (String.isEmpty model.coordinatesString)
@@ -192,9 +185,8 @@ viewValidation model =
     then
         invalidMessage "Please include only numbers in vertical!"
 
+        -- 1行当たりの数字は2つまで
 
-
-    -- 1行当たりの数字は2つまで
     else if
         String.lines model.coordinatesString
             |> List.map String.words
@@ -202,28 +194,24 @@ viewValidation model =
     then
         invalidMessage "Too many numbers on a line!"
 
+        -- 枠の長さが0か判別
 
-
-    -- 枠の長さが0か判別
     else if model.horizontalFrame == 0 then
         invalidMessage "Do not set the x-axis length to 0!"
 
     else if model.verticalFrame == 0 then
         invalidMessage "Do not set the y-axis length to 0!"
 
+        -- 軸の長さより大きいか判別
 
-
-    -- 軸の長さより大きいか判別
     else if List.any (\floatPair -> Tuple.first floatPair > model.horizontalFrame || Tuple.second floatPair > model.horizontalFrame) model.coordinatesList then
         invalidMessage "Make it all point smaller than the x-axis length!"
 
     else if List.any (\floatPair -> Tuple.first floatPair > model.verticalFrame || Tuple.second floatPair > model.verticalFrame) model.coordinatesList then
         invalidMessage "Make it all point smaller than the y-axis length!"
 
-
     else
         validMessage "OK!"
-
 
 
 
@@ -237,7 +225,7 @@ w =
 
 h : Float
 h =
-    500
+    1000
 
 
 padding : Float
